@@ -70,7 +70,6 @@ class AutoPerf
 
       while((line = pipe.gets))
         res['output'] += line
-
         case line
         when /^Total: .*replies (\d+)/ then res['replies'] = $1
         when /^Connection rate: (\d+\.\d)/ then res['conn/s'] = $1
