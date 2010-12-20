@@ -70,6 +70,7 @@ class AutoPerf
 
       while((line = pipe.gets))
         res['output'] += line
+        puts line
         case line
         when /^Total: .*replies (\d+)/ then res['replies'] = $1
         when /^Connection rate: (\d+\.\d)/ then res['conn/s'] = $1
@@ -94,11 +95,12 @@ class AutoPerf
 
   def run
     results = {}
-    report = Table(:column_names => ['time', 'rate', 'conn/s', 'req/s', 'replies/s min', 'replies/s avg','replies/s max','errors', 'timeout_errors', '5xx status', 'net io (KB/s)'])
+    report = Table(:column_names => ['time', 'rate', 'conn/s', 'req/s', 'replies/s min', 'replies/s avg','replies/s max','errors', 'timeout errors', '5xx status', 'net io (KB/s)'])
 
     (@conf['low_rate'].to_i..@conf['high_rate'].to_i).step(@conf['rate_step'].to_i) do |rate|
       results[rate] = benchmark(@conf.merge({'httperf_rate' => rate}))
       report << results[rate].merge({'rate' => rate})
+      File.open('out', '+w'){|f| f.write(report.to_csv)}
 
       puts report.to_s
       puts results[rate]['output'] if results[rate]['errors'].to_i > 0 || results[rate]['5xx status'].to_i > 0
