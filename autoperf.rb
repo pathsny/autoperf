@@ -100,11 +100,11 @@ class AutoPerf
     (@conf['low_rate'].to_i..@conf['high_rate'].to_i).step(@conf['rate_step'].to_i) do |rate|
       results[rate] = benchmark(@conf.merge({'httperf_rate' => rate}))
       report << results[rate].merge({'rate' => rate})
-      File.open('out', 'w'){|f| f.write(report.to_csv)}
 
       puts report.to_s
       puts results[rate]['output'] if results[rate]['errors'].to_i > 0 || results[rate]['5xx status'].to_i > 0
     end
+    File.open('out', 'w'){|f| f.write(report.to_csv)}
   end
 end
 
