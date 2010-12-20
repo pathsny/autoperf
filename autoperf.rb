@@ -64,6 +64,7 @@ class AutoPerf
     httperf_cmd = "httperf --hog --server #{conf['host']} --uri #{conf['uri']} --port #{conf['port']} #{httperf_opt} #{wlog_opt}"
 
     res = Hash.new("")
+    res['time'] = Time.now
     IO.popen("#{httperf_cmd} 2>&1") do |pipe|
       puts "\n#{httperf_cmd}"
 
@@ -76,7 +77,9 @@ class AutoPerf
         when /^Request rate: (\d+\.\d)/ then res['req/s'] = $1
         when /^Reply time .* response (\d+\.\d)/ then res['reply time'] = $1
         when /^Net I\/O: (\d+\.\d)/ then res['net io (KB/s)'] = $1
-        when /^Errors: total (\d+)/ then res['errors'] = $1
+        when /^Errors: total (\d+) client-timo (\d+)/ then 
+          res['errors'] = $1
+          res['timeout errors'] = $2
         when /^Reply rate .*min (\d+\.\d) avg (\d+\.\d) max (\d+\.\d) stddev (\d+\.\d)/ then
           res['replies/s min'] = $1
           res['replies/s avg'] = $2
@@ -92,8 +95,7 @@ class AutoPerf
 
   def run
     results = {}
-    report = Table(:column_names => ['rate', 'conn/s', 'req/s', 'replies/s avg',
-                                     'errors', '5xx status', 'net io (KB/s)'])
+    report = Table(:column_names => ['time', 'rate', 'conn/s', 'req/s', 'replies/s min', 'replies/s avg','replies/s max','errors', 'timeout_errors', '5xx status', 'net io (KB/s)'])
 
     (@conf['low_rate'].to_i..@conf['high_rate'].to_i).step(@conf['rate_step'].to_i) do |rate|
       results[rate] = benchmark(@conf.merge({'httperf_rate' => rate}))
