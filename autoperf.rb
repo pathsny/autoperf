@@ -16,6 +16,9 @@ class AutoPerf
       opts.on("-c", "--config [string]", String, "configuration file") do |v|
         @conf = parse_config(v)
       end
+      opts.on("-o", "--output FILE", "output csv file") do |v|
+        @output_file = v
+      end  
     end.parse!
 
     run()
@@ -70,22 +73,21 @@ class AutoPerf
 
       while((line = pipe.gets))
         res['output'] += line
-        puts line
         case line
         when /^Total: .*replies (\d+)/ then res['replies'] = $1
-        when /^Connection rate: (\d+\.\d)/ then res['conn/s'] = $1
-        when /^Request rate: (\d+\.\d)/ then res['req/s'] = $1
-        when /^Reply time .* response (\d+\.\d)/ then res['reply time'] = $1
-        when /^Net I\/O: (\d+\.\d)/ then res['net io (KB/s)'] = $1
+        when /^Connection rate: (\d+\.\d)/ then res['conn_per_sec'] = $1
+        when /^Request rate: (\d+\.\d)/ then res['req_per_sec'] = $1
+        when /^Reply time .* response (\d+\.\d)/ then res['reply_time'] = $1
+        when /^Net I\/O: (\d+\.\d)/ then res['net_io_kbs'] = $1
         when /^Errors: total (\d+) client-timo (\d+)/ then 
           res['errors'] = $1
-          res['timeout errors'] = $2
+          res['timeout_errors'] = $2
         when /^Reply rate .*min (\d+\.\d) avg (\d+\.\d) max (\d+\.\d) stddev (\d+\.\d)/ then
-          res['replies/s min'] = $1
-          res['replies/s avg'] = $2
-          res['replies/s max'] = $3
-          res['replies/s stddev'] = $4
-        when /^Reply status: 1xx=\d+ 2xx=\d+ 3xx=\d+ 4xx=\d+ 5xx=(\d+)/ then res['5xx status'] = $1
+          res['replies_per_sec_min'] = $1
+          res['replies_per_sec_avg'] = $2
+          res['replies_per_sec_max'] = $3
+          res['replies_per_sec_stddev'] = $4
+        when /^Reply status: 1xx=\d+ 2xx=\d+ 3xx=\d+ 4xx=\d+ 5xx=(\d+)/ then res['5xx_status'] = $1
         end
       end
     end
@@ -95,16 +97,16 @@ class AutoPerf
 
   def run
     results = {}
-    report = Table(:column_names => ['time', 'rate', 'conn/s', 'req/s', 'replies/s min', 'replies/s avg','replies/s max','errors', 'timeout errors', '5xx status', 'net io (KB/s)'])
+    report = Table(:column_names => ['time', 'rate', 'conn_per_sec', 'req_per_sec', 'replies_per_sec_min', 'replies_per_sec_avg','replies_per_sec_max','errors', 'timeout_errors', '5xx_status', 'net_io_kbs'])
 
     (@conf['low_rate'].to_i..@conf['high_rate'].to_i).step(@conf['rate_step'].to_i) do |rate|
       results[rate] = benchmark(@conf.merge({'httperf_rate' => rate}))
       report << results[rate].merge({'rate' => rate})
 
       puts report.to_s
-      puts results[rate]['output'] if results[rate]['errors'].to_i > 0 || results[rate]['5xx status'].to_i > 0
+      puts results[rate]['output'] if results[rate]['errors'].to_i > 0 || results[rate]['5xx_status'].to_i > 0
     end
-    File.open('out', 'w'){|f| f.write(report.to_csv)}
+    File.open(@output_file, 'w'){|f| f.write(report.to_csv)}
   end
 end
 
