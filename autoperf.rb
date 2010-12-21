@@ -106,6 +106,7 @@ class AutoPerf
       puts report.to_s
       puts results[rate]['output'] if results[rate]['errors'].to_i > 0 || results[rate]['5xx_status'].to_i > 0
     end
+    report << [Time.now, *([nil]*10)]
     File.open(@output_file, 'w'){|f| f.write(report.to_csv)}
   end
 end
